@@ -1,0 +1,18 @@
+Samples: 107  Patients: 74 
+
+      tumor
+normal  0  1
+     0  0 25
+     1 16 33
+
+
+Tumour + normal     Tumour only 
+             33              25 
+    Normal only 
+             16 
+
+                 tissue
+sample_group      normal tumor
+  Tumour + normal     33    33
+  Tumour only          0    25
+  Normal only         16     0

@@ -1,0 +1,13 @@
+Probes after AFFX removal: 22215 
+Genes kept: 8000 
+
+all   : tumour 58 8000  normal 49 8000 
+paired: tumour 33 8000  normal 33 8000 
+paired rows aligned by patient: TRUE 
+
+independent: tumour 42 8000  normal 32 8000 
+Expression range (kept genes): 3.9 15.25 
+Mean expression (kept genes): min 6  median 8.39 
+Probes with mean > 6 : 17631 
+Annotated with symbol: 7920 of 8000 
+Unique symbols: 5872 

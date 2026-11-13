@@ -1,0 +1,38 @@
+Design: independent  tumour 42 8000  normal 32 8000 
+beta1 = 6  minClusterSize = 20  cutHeight = 0.996  merge cutHeight = 0.2
+
+Modules before merging: 77 
+Modules after merging:  26 
+
+colorh1C1C2
+           grey        darkgrey 
+           2680            2507 
+         coral2   paleturquoise 
+           1028             184 
+            red             tan 
+            149             134 
+    darkmagenta   antiquewhite4 
+            113             112 
+lightsteelblue1  darkolivegreen 
+            104             101 
+         salmon   darkslateblue 
+             89              77 
+         maroon      darkorange 
+             74              68 
+        skyblue     saddlebrown 
+             68              66 
+         violet      lightcyan1 
+             65              52 
+  mediumpurple3          brown4 
+             52              49 
+ palevioletred3         salmon4 
+             43              43 
+  darkseagreen4   mediumpurple2 
+             38              29 
+     lightcoral          brown2 
+             27              25 
+          blue2 
+             23 
+
+Genes in modules: 5320 of 8000 
+Heatmap module order: antiquewhite4 mediumpurple2 palevioletred3 lightcyan1 darkgrey blue2 skyblue mediumpurple3 paleturquoise salmon violet maroon brown2 darkseagreen4 salmon4 tan darkolivegreen brown4 red darkorange darkslateblue coral2 lightcoral darkmagenta saddlebrown lightsteelblue1 

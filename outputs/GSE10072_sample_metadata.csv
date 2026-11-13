@@ -1,0 +1,108 @@
+"","patient","sample","tissue","sex","smoking","stage","age","group","paired"
+"GSM254625","GT00006","GSM254625","tumor","Male","never","IIB",69,"Tumour + normal",TRUE
+"GSM254626","GT00006","GSM254626","normal","Male","never","IIB",69,"Tumour + normal",TRUE
+"GSM254627","GT00007","GSM254627","tumor","Male","former","IIB",68,"Tumour + normal",TRUE
+"GSM254628","GT00007","GSM254628","normal","Male","former","IIB",68,"Tumour + normal",TRUE
+"GSM254629","GT00022","GSM254629","tumor","Female","never","IB",74,"Tumour only",FALSE
+"GSM254630","GT00042","GSM254630","tumor","Male","former","IIA",75,"Tumour only",FALSE
+"GSM254631","GT00059","GSM254631","tumor","Male","former","IIIA",67,"Tumour + normal",TRUE
+"GSM254632","GT00059","GSM254632","normal","Male","former","IIIA",67,"Tumour + normal",TRUE
+"GSM254633","GT00146","GSM254633","tumor","Male","former","IIB",71,"Tumour + normal",TRUE
+"GSM254634","GT00146","GSM254634","normal","Male","former","IIB",71,"Tumour + normal",TRUE
+"GSM254635","GT01001","GSM254635","normal","Female","never","IIIB",70,"Tumour + normal",TRUE
+"GSM254636","GT01001","GSM254636","tumor","Female","never","IIIB",70,"Tumour + normal",TRUE
+"GSM254637","GT01003","GSM254637","tumor","Female","current","IV",45,"Tumour + normal",TRUE
+"GSM254638","GT01003","GSM254638","normal","Female","current","IV",45,"Tumour + normal",TRUE
+"GSM254639","GT01011","GSM254639","tumor","Female","never","IIB",67,"Tumour + normal",TRUE
+"GSM254640","GT01011","GSM254640","normal","Female","never","IIB",67,"Tumour + normal",TRUE
+"GSM254641","GT01017","GSM254641","tumor","Male","current","IIB",65,"Tumour only",FALSE
+"GSM254642","GT01019","GSM254642","tumor","Female","current","IIB",66,"Tumour only",FALSE
+"GSM254643","GT01024","GSM254643","normal","Male","never","IA",61,"Normal only",FALSE
+"GSM254644","GT01025","GSM254644","normal","Male","current","IA",65,"Tumour + normal",TRUE
+"GSM254645","GT01025","GSM254645","tumor","Male","current","IA",65,"Tumour + normal",TRUE
+"GSM254646","GT01033","GSM254646","normal","Male","former","IIB",73,"Normal only",FALSE
+"GSM254647","GT01034","GSM254647","tumor","Male","current","IIB",73,"Tumour only",FALSE
+"GSM254648","GT01036","GSM254648","tumor","Female","never","IB",67,"Tumour + normal",TRUE
+"GSM254649","GT01036","GSM254649","normal","Female","never","IB",67,"Tumour + normal",TRUE
+"GSM254650","GT01038","GSM254650","tumor","Female","current","IIIA",46,"Tumour + normal",TRUE
+"GSM254651","GT01038","GSM254651","normal","Female","current","IIIA",46,"Tumour + normal",TRUE
+"GSM254652","GT01040","GSM254652","tumor","Female","never","IIB",71,"Tumour only",FALSE
+"GSM254653","GT01047","GSM254653","normal","Female","never","IIIA",59,"Normal only",FALSE
+"GSM254654","GT01049","GSM254654","tumor","Female","former","IIIA",79,"Tumour only",FALSE
+"GSM254655","GT01051","GSM254655","normal","Male","former","IB",66,"Normal only",FALSE
+"GSM254656","GT01052","GSM254656","tumor","Female","former","IIIA",56,"Tumour only",FALSE
+"GSM254657","GT01054","GSM254657","tumor","Male","former","IIIB",71,"Tumour only",FALSE
+"GSM254658","GT01061","GSM254658","normal","Female","never","IIIA",68,"Tumour + normal",TRUE
+"GSM254659","GT01061","GSM254659","tumor","Female","never","IIIA",68,"Tumour + normal",TRUE
+"GSM254660","GT01064","GSM254660","normal","Female","never","IB",71,"Normal only",FALSE
+"GSM254661","GT01077","GSM254661","tumor","Female","current","IIA",59,"Tumour only",FALSE
+"GSM254662","GT01085","GSM254662","normal","Male","former","IIIA",65,"Normal only",FALSE
+"GSM254663","GT01087","GSM254663","tumor","Male","current","IIB",58,"Tumour only",FALSE
+"GSM254664","GT01089","GSM254664","tumor","Male","former","IIIB",62,"Tumour only",FALSE
+"GSM254665","GT01095","GSM254665","normal","Female","current","IB",61,"Normal only",FALSE
+"GSM254666","GT01097","GSM254666","tumor","Male","current","IA",59,"Tumour + normal",TRUE
+"GSM254667","GT01097","GSM254667","normal","Male","current","IA",59,"Tumour + normal",TRUE
+"GSM254668","GT01099","GSM254668","tumor","Male","former","IB",71,"Tumour + normal",TRUE
+"GSM254669","GT01099","GSM254669","normal","Male","former","IB",71,"Tumour + normal",TRUE
+"GSM254670","GT01100","GSM254670","tumor","Male","former","IIB",69,"Tumour + normal",TRUE
+"GSM254671","GT01100","GSM254671","normal","Male","former","IIB",69,"Tumour + normal",TRUE
+"GSM254672","GT01103","GSM254672","tumor","Female","current","IB",64,"Tumour only",FALSE
+"GSM254673","GT01105","GSM254673","normal","Male","never","IV",61,"Tumour + normal",TRUE
+"GSM254674","GT01105","GSM254674","tumor","Male","never","IV",61,"Tumour + normal",TRUE
+"GSM254675","GT01107","GSM254675","tumor","Male","current","IA",59,"Tumour + normal",TRUE
+"GSM254676","GT01107","GSM254676","normal","Male","current","IA",59,"Tumour + normal",TRUE
+"GSM254677","GT01113","GSM254677","normal","Male","former","IIIB",63,"Normal only",FALSE
+"GSM254678","GT01117","GSM254678","tumor","Male","current","IB",63,"Tumour + normal",TRUE
+"GSM254679","GT01117","GSM254679","normal","Male","current","IB",63,"Tumour + normal",TRUE
+"GSM254680","GT01119","GSM254680","tumor","Female","never","IIIA",74,"Tumour + normal",TRUE
+"GSM254681","GT01119","GSM254681","normal","Female","never","IIIA",74,"Tumour + normal",TRUE
+"GSM254682","GT01120","GSM254682","tumor","Male","current","IIB",51,"Tumour + normal",TRUE
+"GSM254683","GT01120","GSM254683","normal","Male","current","IIB",51,"Tumour + normal",TRUE
+"GSM254684","GT01121","GSM254684","tumor","Male","current","IV",52,"Tumour + normal",TRUE
+"GSM254685","GT01121","GSM254685","normal","Male","current","IV",52,"Tumour + normal",TRUE
+"GSM254686","GT01124","GSM254686","tumor","Female","never","IIIA",68,"Tumour only",FALSE
+"GSM254687","GT01126","GSM254687","tumor","Female","current","IIIA",60,"Tumour only",FALSE
+"GSM254688","GT01127","GSM254688","tumor","Male","current","IB",73,"Tumour only",FALSE
+"GSM254689","GT01128","GSM254689","normal","Male","current","IB",66,"Tumour + normal",TRUE
+"GSM254690","GT01128","GSM254690","tumor","Male","current","IB",66,"Tumour + normal",TRUE
+"GSM254691","GT01129","GSM254691","normal","Female","current","IB",55,"Tumour + normal",TRUE
+"GSM254692","GT01129","GSM254692","tumor","Female","current","IB",55,"Tumour + normal",TRUE
+"GSM254693","GT01130","GSM254693","normal","Female","never","IB",71,"Tumour + normal",TRUE
+"GSM254694","GT01130","GSM254694","tumor","Female","never","IB",71,"Tumour + normal",TRUE
+"GSM254695","GT01131","GSM254695","normal","Female","never","IA",64,"Normal only",FALSE
+"GSM254696","GT01135","GSM254696","tumor","Male","current","IB",60,"Tumour only",FALSE
+"GSM254697","GT01148","GSM254697","tumor","Male","former","IB",69,"Tumour only",FALSE
+"GSM254698","GT01151","GSM254698","tumor","Female","current","IIA",80,"Tumour only",FALSE
+"GSM254699","GT01156","GSM254699","normal","Male","former","IB",73,"Normal only",FALSE
+"GSM254700","GT01175","GSM254700","tumor","Female","never","IIB",62,"Tumour only",FALSE
+"GSM254701","GT01182","GSM254701","tumor","Female","never","IB",78,"Tumour + normal",TRUE
+"GSM254702","GT01182","GSM254702","normal","Female","never","IB",78,"Tumour + normal",TRUE
+"GSM254703","GT01194","GSM254703","normal","Male","former","IB",67,"Tumour + normal",TRUE
+"GSM254704","GT01194","GSM254704","tumor","Male","former","IB",67,"Tumour + normal",TRUE
+"GSM254705","GT01222","GSM254705","tumor","Male","current","IB",63,"Tumour + normal",TRUE
+"GSM254706","GT01222","GSM254706","normal","Male","current","IB",63,"Tumour + normal",TRUE
+"GSM254707","GT01232","GSM254707","tumor","Male","former","IB",81,"Tumour + normal",TRUE
+"GSM254708","GT01232","GSM254708","normal","Male","former","IB",81,"Tumour + normal",TRUE
+"GSM254709","GT01233","GSM254709","tumor","Male","current","IIB",57,"Tumour + normal",TRUE
+"GSM254710","GT01233","GSM254710","normal","Male","current","IIB",57,"Tumour + normal",TRUE
+"GSM254711","GT01237","GSM254711","normal","Male","former","IIB",60,"Normal only",FALSE
+"GSM254712","GT01239","GSM254712","normal","Male","current","IA",65,"Normal only",FALSE
+"GSM254713","GT01240","GSM254713","normal","Male","current","IB",75,"Normal only",FALSE
+"GSM254714","GT01243","GSM254714","tumor","Male","former","IA",73,"Tumour + normal",TRUE
+"GSM254715","GT01243","GSM254715","normal","Male","former","IA",73,"Tumour + normal",TRUE
+"GSM254716","GT01246","GSM254716","tumor","Male","former","IIB",76,"Tumour + normal",TRUE
+"GSM254717","GT01246","GSM254717","normal","Male","former","IIB",76,"Tumour + normal",TRUE
+"GSM254718","GT01247","GSM254718","tumor","Female","never","IIIA",62,"Tumour + normal",TRUE
+"GSM254719","GT01247","GSM254719","normal","Female","never","IIIA",62,"Tumour + normal",TRUE
+"GSM254720","GT01274","GSM254720","tumor","Male","former","IIB",75,"Tumour only",FALSE
+"GSM254721","GT01276","GSM254721","tumor","Male","current","IIB",73,"Tumour only",FALSE
+"GSM254722","GT01279","GSM254722","tumor","Male","former","IB",74,"Tumour only",FALSE
+"GSM254723","GT01283","GSM254723","normal","Male","former","IIB",77,"Normal only",FALSE
+"GSM254724","GT01411","GSM254724","tumor","Male","current","IIB",63,"Tumour only",FALSE
+"GSM254725","GT01417","GSM254725","normal","Male","current","IIA",69,"Normal only",FALSE
+"GSM254726","GT01421","GSM254726","tumor","Male","never","IB",68,"Tumour + normal",TRUE
+"GSM254727","GT01421","GSM254727","normal","Male","never","IB",68,"Tumour + normal",TRUE
+"GSM254728","GT01425","GSM254728","tumor","Female","never","IA",72,"Tumour only",FALSE
+"GSM254729","GT01445","GSM254729","tumor","Male","former","IIB",70,"Tumour + normal",TRUE
+"GSM254730","GT01445","GSM254730","normal","Male","former","IIB",70,"Tumour + normal",TRUE
+"GSM254731","GT01479","GSM254731","normal","Male","former","IIB",63,"Normal only",FALSE
