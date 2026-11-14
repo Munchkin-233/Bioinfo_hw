@@ -1,20 +1,39 @@
 ## Project 2 ###
 ## Yao Xin ###
 
+
+
 # 0.prepare packages and dirs ------
-library(GEOquery)
+
+## ---- Packages ----
+
+
+# if (!require("BiocManager", quietly = TRUE))
+#   install.packages("BiocManager")
+# BiocManager::install("GEOquery")
+# if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+# BiocManager::install(c("impute", "preprocessCore", "GO.db"), ask = FALSE, update = FALSE)
+# install.packages("WGCNA")
+ 
+# Load
+library(matrixStats)    # rowVars / rowMeans for gene filtering
+library(gtsummary)      # Table 1 
+library(ggrepel)        # non-overlapping plot labels
+library(RColorBrewer)   # colour palettes (used by plotC1C2Heatmap)
 library(ggplot2)
-library(pheatmap)
-library(ggrepel)
-library(WGCNA) 
-library(RColorBrewer)
 
+
+library(Biobase) 
+library(fastcluster)    # fast hclust ( flashClust)
+library(GEOquery) 
+library(pheatmap) # sample-distance heatmap
+library(WGCNA)  
+ 
 dir.create("outputs", showWarnings = FALSE)
+out_dir <- "outputs"
 
 
-
-
-# gds  <- getGEO("GDS2901", destdir = ".")   # downloads and caches GDS2901.soft.gz
+# gds  <- getGEO("GDS2901", destdir = ".")   # downloads and caches GDS2901.soft.gz - paper data 
 # eset <- GDS2eSet(gds, do.log2 = FALSE)     # ExpressionSet: exprs(eset) is probes × samples
 # pData(eset)                                # genotype / agent / time per sample
 # data<-as.matrix(eset)
@@ -23,7 +42,7 @@ dir.create("outputs", showWarnings = FALSE)
 # part II - reproduce on human dataset GSE10072
 
 ## ==========1.input data, examine ============
-gse  <- getGEO("GSE10072", destdir = ".")   # downloads and caches GDS2901.soft.gz
+gse  <- getGEO("GSE10072", destdir = ".")   # downloads and caches GDS2901.soft.gz - choice of data 
 names(gse)           # e.g. "GSE10072_series_matrix.txt.gz"
 
 eset <- gse[[1]]     # pull out the ExpressionSet
@@ -51,9 +70,7 @@ for (v in col_groups) {
   print(table(pd[[v]], useNA = "ifany"))
 }
 
-## =========2. sample summaries =============== 
-library(gtsummary)
-
+## =========2. sample summaries ===============  
 ### ---- 2.1 Clean sample table (one row per array) ----
 ch_table <- data.frame(
   patient = sub(".*_", "", pd$title),             # GTxxxxx
@@ -139,8 +156,6 @@ write.csv(ch_table, "outputs/GSE10072_sample_metadata.csv", row.names = TRUE)
 
  
 ## ========= 3. Expression matrices for DiffCoEx ===============
-library(Biobase)
-library(matrixStats)
 
 eset_gse <- gse[[1]]  
 N_GENES  <- 8000   # limit    
@@ -361,7 +376,7 @@ options(stringsAsFactors = FALSE)
 disableWGCNAThreads()                           
 
 ### ---- 4.0 S1 supporting functions (from DiffCoEx_paper_Supp_file1)  ----
-source("DiffCoEx_functions.R")   #  functions from the file ; 
+source("DiffCoEx_functions.R")   #  functions from the Supp file1 ; 
 
 ### ---- 4.1 Input: independent design (each patient contributes one array) ----
 datC1 <- dc_input$independent$datC1                     # tumour: samples x genes
@@ -422,7 +437,7 @@ write.csv(modules, file.path(out_dir, "GSE10072_4_module_assignment.csv"), row.n
 
 saveRDS(list(colors = colorh1C1C2, colors_unmerged = dynamicColorsHybridC1C2,
              geneTree = geneTreeC1C2, beta1 = beta1,
-             heatmap_order = if (exists("hm")) hm$module_order else NULL),
+             heatmap_order = if (exists("hm")) hm else NULL),        # ** S1's plotC1C2Heatmap returns the order itself
         file.path(out_dir, "GSE10072_4_diffcoex_modules.rds"))
 
 capture.output(
@@ -438,13 +453,13 @@ capture.output(
 
 
 
-# ========= 5. Permutation test of differential co-expression (DiffCoEx S1 section 3) ===============
+## ========= 5. Permutation test of differential co-expression (DiffCoEx S1 section 3) ===============
 # Uses objects from section 4: datC1, datC2 (independent design), colorh1C1C2 (module colours).
 SPLIT_SEED <- 2026
 set.seed(SPLIT_SEED)                         
 N_PERM <- 1000        # ** number of permutations (S1 used 1000)
 
-# ---- 5.1 Permuted sample indices (S1) ----
+### ---- 5.1 Permuted sample indices (S1) ----
 permutations<-NULL
 for (i in 1:N_PERM)   
 {
@@ -455,47 +470,71 @@ for (i in 1:N_PERM)
 d<-rbind(scale(datC1),scale(datC2))
 # ** scaling within each condition removes tumour-vs-normal mean shifts before shuffling
 
-# ---- 5.2 Observed dispersions and null distributions (S1 loop) ----
+### ---- 5.2 Observed dispersions and null distributions (S1 loop) ----
 mods  <- setdiff(unique(colorh1C1C2), "grey")            # ** non-grey modules, in S1's order
 n_mod <- length(mods)                                    # ** S1 hard-coded 8 (rat modules); use the actual count
 stopifnot(n_mod >= 1)                                    # ** stop if section 4 found no modules
 
-# compute all pairwise module to module dispersion values, and generate a null distribution from permuted scaled data
-dispersionMatrix<-matrix(nrow=n_mod,ncol=n_mod)          # ** S1: length(unique(colorh1C1C2))-1, same value
-dimnames(dispersionMatrix) <- list(mods, mods)           # ** label rows/cols by module colour
+#We compute all pairwise module to module dispersion values, and generate a null distribution from permuted scaled data
+dispersionMatrix<-matrix(nrow=n_mod,ncol=n_mod)
+dimnames(dispersionMatrix) <- list(mods, mods)
 nullDistrib<-list()
+n_cells <- n_mod * (n_mod + 1) / 2                       # ** number of upper-triangle cells to compute
+cell <- 0                                                # ** progress counter
+t0 <- Sys.time()                                         # ** start time
 i<-j<-0
 
-big <- names(sort(table(colorh1C1C2[colorh1C1C2 != "grey"]), decreasing = TRUE))[1]   # ** largest module
-system.time(apply(permutations[1:50, ], 1, permutationProcedureModule2Module, d, big, big, colorh1C1C2))  # ** 50 of the 1000 permutations
-
-for (c1 in mods)  {                                    # ** S1: setdiff(unique(colorh1C1C2),"grey"), same set
+for (c1 in mods) {
   i<-i+1
   j<-0
   nullDistrib[[c1]]<-list()
-  for (c2 in mods)  {
+  for (c2 in mods) {
     j<-j+1
-    if (j < i) next                                      # ** matrix is symmetric: skip lower triangle (halves run time)
-    dispersionMatrix[i,j]<-dispersionModule2Module(c1,c2,datC1,datC2,colorh1C1C2)
-    nullDistrib[[c1]][[c2]]<-apply(permutations,1,permutationProcedureModule2Module,d,c2,c1,colorh1C1C2)
+    if (j < i) next        # ** matrix is symmetric: skip lower triangle
+    dispersionMatrix[i,j] <- dispersionModule2Module(c1,c2,datC1,datC2,colorh1C1C2)
+    nullDistrib[[c1]][[c2]] <- apply(permutations,1,permutationProcedureModule2Module,d,c2,c1,colorh1C1C2)
+    cell <- cell + 1                                     # ** one more cell done
+    message(sprintf("[%d/%d] %s-%s done ", cell, n_cells, c1, c2) ) # ** progress line 
   }
 }
 
-# ---- 5.3 Permutation summary (S1) ----
+print(t0)
+Sys.time()    
+
+# save results 
+dispersionMatrix
+nullDistrib
+
+# ---- 5.2b Checkpoint: save the slow loop's results immediately ----
+saveRDS(list(dispersionMatrix = dispersionMatrix,     # ** observed dispersion per module pair (upper triangle)
+             nullDistrib      = nullDistrib,          # ** 1000 permuted dispersions per module pair
+             permutations     = permutations,         # ** the shuffled sample indices (exact reproducibility)
+             mods             = mods,                 # ** module order used for rows/columns
+             N_PERM           = N_PERM,
+             seed             = 20261005L),
+        file.path(out_dir, "GSE10072_5_permutation_raw.rds"))
+
+# next time use - read RDS 
+# ???? readRDS(file.path(out_dir, "GSE10072_5_permutation_raw.rds"))
+
+## ---- 5.3 Permutation summary (S1) ----
 #We create a summary matrix indicating for each module to module
 #differential coexpression the number of permuted data yielding
 #an equal or higher dispersion.
 permutationSummary<-matrix(nrow=n_mod,ncol=n_mod)        # ** S1: nrow=8,ncol=8
 colnames(permutationSummary)<-mods
 rownames(permutationSummary)<-mods
-for (i in 1:n_mod) { for (j in i:n_mod) {               # ** S1: 1:8 x 1:8; upper triangle only, as computed above
-  permutationSummary[i,j]<-length(which(nullDistrib[[i]][[j]] >= dispersionMatrix[i,j]))}}
+for (i in 1:n_mod) { 
+  for (j in i:n_mod) {               # ** S1: 1:8 x 1:8; upper triangle only, as computed above
+  permutationSummary[i,j] <- length(which(nullDistrib[[i]][[j]] >= dispersionMatrix[i,j]))
+  }
+}
 
 # ---- 5.4 Supplementary Fig S1 (S1 plotMatrix) ----
 #We plot the result (cf supplementary figure 1)
 png(file.path(out_dir, "GSE10072_5_permutation_FigS1.png"), width = 700, height = 700)   # ** save to file (S1 drew to screen)
 plotMatrix(permutationSummary)
-dev.off()                                                # ** close the png device
+dev.off()                                               
 
 # ---- 5.5 Tables: empirical p-values with BH adjustment ----
 perm_tab <- data.frame(module1 = rownames(permutationSummary)[row(permutationSummary)],     # ** long format: one row per module pair
