@@ -460,6 +460,10 @@ set.seed(SPLIT_SEED)
 N_PERM <- 1000        # ** number of permutations (S1 used 1000)
 
 ### ---- 5.1 Permuted sample indices (S1) ----
+
+if (!file.exists(file.path(out_dir, "GSE10072_5_permutation_raw.rds"))) {
+  
+  ########-------below is if file does not exist###########------
 permutations<-NULL
 for (i in 1:N_PERM)   
 {
@@ -505,17 +509,28 @@ Sys.time()
 dispersionMatrix
 nullDistrib
 
-# ---- 5.2b Checkpoint: save the slow loop's results immediately ----
-saveRDS(list(dispersionMatrix = dispersionMatrix,     # ** observed dispersion per module pair (upper triangle)
-             nullDistrib      = nullDistrib,          # ** 1000 permuted dispersions per module pair
-             permutations     = permutations,         # ** the shuffled sample indices (exact reproducibility)
-             mods             = mods,                 # ** module order used for rows/columns
-             N_PERM           = N_PERM,
-             seed             = 20261005L),
+### ---- 5.2b Checkpoint: save the slow loop's results immediately ----
+saveRDS(list(dispersionMatrix = dispersionMatrix, 
+             nullDistrib = nullDistrib,
+             permutations = permutations, 
+             mods = mods,
+             N_PERM = N_PERM, 
+             seed = SPLIT_SEED),
         file.path(out_dir, "GSE10072_5_permutation_raw.rds"))
+sum(lengths(nullDistrib))   # 325 at start of fill-in → 351 when done
+
+########-------above is if file does not exist###########------
+}
+
 
 # next time use - read RDS 
-# ???? readRDS(file.path(out_dir, "GSE10072_5_permutation_raw.rds"))
+chk <- readRDS(file.path(out_dir, "GSE10072_5_permutation_raw.rds"))
+dispersionMatrix <- chk$dispersionMatrix
+nullDistrib      <- chk$nullDistrib
+permutations     <- chk$permutations
+mods             <- chk$mods
+n_mod            <- length(mods)
+N_PERM           <- chk$N_PERM
 
 ## ---- 5.3 Permutation summary (S1) ----
 #We create a summary matrix indicating for each module to module

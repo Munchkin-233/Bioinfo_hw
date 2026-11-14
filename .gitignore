@@ -1,6 +1,5 @@
 # R / RStudio
-.Rproj.user/
-.Rhistory
+.Rproj.user/ 
 .RData
 # macOS / Office temp files
 .DS_Store
@@ -9,9 +8,8 @@
 *.soft.gz
 *_series_matrix.txt.gz
 # large intermediate objects
-outputs/*.rds
+###### outputs/*.rds
 # papers and supplements (copyrighted; don't publish)
-*.pdf
 *.DOC
 *.XLS
 CS_core_S4_Supplementary Data/
