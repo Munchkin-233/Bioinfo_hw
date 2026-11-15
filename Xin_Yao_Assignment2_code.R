@@ -413,14 +413,25 @@ colorh1C1C2 <- mergeCloseModules(rbind(scale(datC1), scale(datC2)),
                                  dynamicColorsHybridC1C2, cutHeight = .2)$colors
 table(colorh1C1C2)
 
-### ---- 4.5 Figures: dendrogram with modules; comparative correlation heatmap ----
-png(file.path(out_dir, "GSE10072_4_module_dendrogram.png"), width = 1200, height = 700, res = 120)
-plotDendroAndColors(geneTreeC1C2, cbind(dynamicColorsHybridC1C2, colorh1C1C2),
-                    c("Dynamic tree cut", "Merged"), dendroLabels = FALSE, hang = 0.03,
-                    addGuide = TRUE, guideHang = 0.05,
+### ---- 4.5 Figures: dendrogram with modules/ comparative correlation heatmap ----
+# mean log2 expression of each gene's module, per condition (grey genes left white)
+mod_mean <- function(dat) {
+  mm <- tapply(seq_along(colorh1C1C2), colorh1C1C2, function(ix) mean(dat[, ix]))
+  mm[colorh1C1C2]
+}
+e1 <- mod_mean(datC1); e2 <- mod_mean(datC2)
+keep <- colorh1C1C2 != "grey"
+rng  <- range(c(e1[keep], e2[keep]))
+pal  <- colorRampPalette(c("white", "saddlebrown"))(100)
+to_col <- function(v) ifelse(keep, pal[1 + round(99 * (v - rng[1]) / diff(rng))], "white")
+
+png(file.path(out_dir, "GSE10072_4_module_dendrogram.png"), width = 1400, height = 800, res = 120)
+plotDendroAndColors(geneTreeC1C2,
+                    cbind(dynamicColorsHybridC1C2, colorh1C1C2, to_col(e1), to_col(e2)),
+                    c("Dynamic tree cut", "Merged", "Mean expr: tumour", "Mean expr: normal"),
+                    dendroLabels = FALSE, hang = 0.03, addGuide = TRUE, guideHang = 0.05,
                     main = "GSE10072: gene dendrogram on TOM of co-expression difference")
 dev.off()
-
 
 
 
@@ -441,6 +452,7 @@ plotFig2A <- function(colorh, AdjC1, AdjC2, datC1, datC2, mod_order, file,
   
   png(file, width = 1600, height = 1400, res = 150)
   layout(matrix(1:2, 1), widths = c(7, 1))
+
   par(mar = c(1, 1, 3, 0))
   image(1:n, 1:n, t(M)[, n:1], col = rev(RColorBrewer::brewer.pal(11, "RdYlBu")),
         breaks = seq(-1, 1, length.out = 12), axes = FALSE, xlab = "", ylab = "",
@@ -449,6 +461,29 @@ plotFig2A <- function(colorh, AdjC1, AdjC2, datC1, datC2, mod_order, file,
   par(mar = c(1, 0, 3, 1))
   plot(NA, xlim = c(0, 3), ylim = c(0.5, n + 0.5), axes = FALSE, xlab = "", ylab = "",
        xaxs = "i", yaxs = "i")
+
+  
+  par(mar = c(4, 1, 3, 0))   # heatmap    
+  image(1:n, 1:n, t(M)[, n:1], col = rev(RColorBrewer::brewer.pal(11, "RdYlBu")),
+        breaks = seq(-1, 1, length.out = 12), axes = FALSE, xlab = "", ylab = "",
+        useRaster = TRUE, main = paste("Upper:", cond[1], "   Lower:", cond[2])) 
+  legend("bottomleft", inset = c(0, -0.04), xpd = NA, horiz = TRUE, bty = "n", cex = 0.7,
+         fill = rev(RColorBrewer::brewer.pal(11, "RdYlBu"))[c(1, 6, 11)],
+         legend = c("r = −1", "0", "+1"))
+    
+  rect(starts - 0.5, n - ends + 0.5, ends + 0.5, n - starts + 1.5, border = "black", lwd = 1.2)
+  
+  pal11 <- rev(RColorBrewer::brewer.pal(11, "RdYlBu"))
+  kx <- seq(0.3 * n, 0.7 * n, length.out = 12)
+  rect(head(kx, -1), -0.04 * n, kx[-1], -0.02 * n, col = pal11, border = NA, xpd = NA)
+  text(c(0.3, 0.5, 0.7) * n, -0.055 * n, c("−1", "0", "+1"), cex = 0.7, xpd = NA)
+  text(0.5 * n, -0.08 * n, "Spearman correlation", cex = 0.75, xpd = NA)
+  
+  par(mar = c(4, 0, 3, 1))   # side bars
+  plot(NA, xlim = c(0, 3), ylim = c(0.5, n + 0.5), axes = FALSE, xlab = "", ylab = "",
+       xaxs = "i", yaxs = "i")
+  
+
   for (k in seq_along(r$values)) {
     y0 <- n - ends[k] + 0.5; y1 <- n - starts[k] + 1.5
     rect(0, y0, 1, y1, col = r$values[k],    border = NA)            # module colour bar
@@ -627,14 +662,13 @@ plotPermMatrix <- function(mat, n_perm = N_PERM) {
 }
 
 #### 5.4.1. Plot matrix ------
+# (DiffCoEx supp_S1, Permutation counts for every module pair)
 png(file.path(out_dir, "GSE10072_5_permutation_FigS1.png"), width = 2000, height = 2000, res = 200)
 plotPermMatrix(permutationSummary)
 dev.off()
 
-#We plot the result (DiffCoEx supp_S1, Permutation counts for every module pair)
-png(file.path(out_dir, "GSE10072_5_permutation_FigS1.png"), width = 700, height = 700)   # ** save to file (S1 drew to screen)
-plotMatrix(permutationSummary)
-dev.off()                                               
+
+                                  
 
 # ---- 5.5 Tables: empirical p-values with BH adjustment ----
 perm_tab <- data.frame(module1 = rownames(permutationSummary)[row(permutationSummary)],     # ** long format: one row per module pair
