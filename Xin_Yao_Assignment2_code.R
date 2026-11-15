@@ -509,7 +509,41 @@ Sys.time()
 dispersionMatrix
 nullDistrib
 
-### ---- 5.2b Checkpoint: save the slow loop's results immediately ----
+
+#### ----- new 5.2 -------
+#### ---- 5.2c Fill in the missing cells of the checkpoint ----
+perm_file <- file.path(out_dir, "GSE10072_5_permutation_raw.rds")
+chk <- readRDS(perm_file)
+stopifnot(identical(chk$mods, setdiff(unique(colorh1C1C2), "grey")))   # same modules as this session
+mods <- chk$mods; n_mod <- length(mods)
+permutations <- chk$permutations; nullDistrib <- chk$nullDistrib; N_PERM <- chk$N_PERM
+d <- rbind(scale(datC1), scale(datC2))
+
+# observed dispersions: recompute all (fast)
+dispersionMatrix <- matrix(NA, n_mod, n_mod, dimnames = list(mods, mods))
+for (i in 1:n_mod) for (j in i:n_mod)
+  dispersionMatrix[i, j] <- dispersionModule2Module(mods[i], mods[j], datC1, datC2, colorh1C1C2)
+
+# null distributions: only the missing ones (the 26 diagonals); ~20 min, darkgrey first
+t0 <- Sys.time()
+for (i in 1:n_mod) for (j in i:n_mod) {
+  c1 <- mods[i]; c2 <- mods[j]
+  if (is.null(nullDistrib[[c1]][[c2]])) {
+    nullDistrib[[c1]][[c2]] <- apply(permutations, 1, permutationProcedureModule2Module,
+                                     d, c2, c1, colorh1C1C2)
+    message(sprintf("%s-%s done  (%d/351, %.1f min)", c1, c2,
+                    sum(lengths(nullDistrib)), as.numeric(difftime(Sys.time(), t0, units = "mins"))))
+  }
+}
+
+# verify, then save straight away
+stopifnot(sum(lengths(nullDistrib)) == 351, sum(!is.na(dispersionMatrix)) == 351)
+saveRDS(list(dispersionMatrix = dispersionMatrix, nullDistrib = nullDistrib,
+             permutations = permutations, mods = mods,
+             N_PERM = N_PERM, seed = SPLIT_SEED), perm_file)
+
+
+#### ---- 5.2b Checkpoint: save the slow loop's results immediately ----
 saveRDS(list(dispersionMatrix = dispersionMatrix, 
              nullDistrib = nullDistrib,
              permutations = permutations, 
@@ -532,20 +566,44 @@ mods             <- chk$mods
 n_mod            <- length(mods)
 N_PERM           <- chk$N_PERM
 
-## ---- 5.3 Permutation summary (S1) ----
+### ---- 5.3 Permutation summary (S1) ----
 #We create a summary matrix indicating for each module to module
 #differential coexpression the number of permuted data yielding
 #an equal or higher dispersion.
 permutationSummary<-matrix(nrow=n_mod,ncol=n_mod)        # ** S1: nrow=8,ncol=8
 colnames(permutationSummary)<-mods
 rownames(permutationSummary)<-mods
-for (i in 1:n_mod) { 
-  for (j in i:n_mod) {               # ** S1: 1:8 x 1:8; upper triangle only, as computed above
-  permutationSummary[i,j] <- length(which(nullDistrib[[i]][[j]] >= dispersionMatrix[i,j]))
-  }
+for (i in 1:n_mod) for (j in i:n_mod)
+  permutationSummary[i, j] <- sum(nullDistrib[[mods[i]]][[mods[j]]] >= dispersionMatrix[i, j])
+
+
+
+
+### ---- 5.4 Supplementary Fig S1 (S1 plotMatrix) ----
+
+#### 5.4.0 revised plotting function, rescaled for many modules -----------
+plotPermMatrix <- function(mat, n_perm = N_PERM) {
+  n <- nrow(mat)
+  m <- mat; m[lower.tri(m)] <- NA
+  op <- par(mar = c(1, 9, 9, 1)); on.exit(par(op))
+  image(1:n, 1:n, t(m)[, n:1],                        # row 1 at the top, like a printed matrix
+        col = c(gray.colors(4, start = 0.15, end = 0.85)),
+        breaks = c(-0.5, 0.5, 50, 100, n_perm + 0.5),
+        axes = FALSE, xlab = "", ylab = "", asp = 1)
+  axis(3, at = 1:n, labels = colnames(mat), las = 2, tick = FALSE, cex.axis = 0.7)
+  axis(2, at = n:1, labels = rownames(mat), las = 1, tick = FALSE, cex.axis = 0.7)
+  ij <- which(!is.na(t(m)[, n:1]), arr.ind = TRUE)
+  text(ij[, 1], ij[, 2], t(m)[, n:1][ij], col = "white", cex = 0.45)
+  legend("bottomleft", inset = 0.02, bty = "n", cex = 0.7, title = "permutations ≥ observed",
+         fill = gray.colors(4, start = 0.15, end = 0.85),
+         legend = c("0", "1–50", "51–100", ">100"))
 }
 
-# ---- 5.4 Supplementary Fig S1 (S1 plotMatrix) ----
+#### 5.4.1. Plot matrix ------
+png(file.path(out_dir, "GSE10072_5_permutation_FigS1.png"), width = 2000, height = 2000, res = 200)
+plotPermMatrix(permutationSummary)
+dev.off()
+
 #We plot the result (cf supplementary figure 1)
 png(file.path(out_dir, "GSE10072_5_permutation_FigS1.png"), width = 700, height = 700)   # ** save to file (S1 drew to screen)
 plotMatrix(permutationSummary)
@@ -563,9 +621,6 @@ perm_tab$padj   <- p.adjust(perm_tab$p_perm, method = "BH")                     
 perm_tab <- perm_tab[order(perm_tab$type != "within", perm_tab$p_perm), ]                    # ** within-module rows first, then by p
 write.csv(perm_tab, file.path(out_dir, "GSE10072_5_permutation_results.csv"), row.names = FALSE)
 
-saveRDS(list(dispersionMatrix = dispersionMatrix, permutationSummary = permutationSummary,   # ** keep everything for later sections
-             nullDistrib = nullDistrib, N_PERM = N_PERM, seed = 20261005L),
-        file.path(out_dir, "GSE10072_5_permutation.rds"))
 
 capture.output(                                                                              # ** text log I can read
   cat("Permutations:", N_PERM, "  modules:", n_mod, "\n\n"),
