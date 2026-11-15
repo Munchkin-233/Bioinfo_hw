@@ -384,7 +384,7 @@ datC2 <- dc_input$independent$datC2                     # normal: samples x gene
 stopifnot(identical(colnames(datC1), colnames(datC2)))
 dim(datC1); dim(datC2)
 
-### ---- 4.2 Step 1: signed squared Spearman correlations within each condition ----
+### ---- 4.2  signed squared Spearman correlations within each condition ----
 beta1 <- 6           # S1: user-defined soft threshold (paper used 6)
 corC1 <- cor(datC1, method = "spearman")        # computed once, not twice
 corC2 <- cor(datC2, method = "spearman")
@@ -394,11 +394,11 @@ diag(AdjMatC1) <- 0
 diag(AdjMatC2) <- 0
 rm(corC1, corC2); collectGarbage()
 
-### ---- 4.3 Steps 2-3: adjacency difference -> topological-overlap dissimilarity ----
+### ---- 4.3 adjacency difference -> topological-overlap dissimilarity ----
 dissTOMC1C2 <- TOMdist((abs(AdjMatC1 - AdjMatC2) / 2)^(beta1 / 2))   # S1 line, unchanged
 collectGarbage()
 
-### ---- 4.4 Step 4: hierarchical clustering + dynamic tree cut ----
+### ---- 4.4 hierarchical clustering + dynamic tree cut ----
 geneTreeC1C2 <- fastcluster::hclust(as.dist(dissTOMC1C2), method = "average")  # changed: was flashClust
 
 dynamicModsHybridC1C2 <- cutreeDynamic(dendro = geneTreeC1C2, distM = dissTOMC1C2,
@@ -407,7 +407,7 @@ dynamicModsHybridC1C2 <- cutreeDynamic(dendro = geneTreeC1C2, distM = dissTOMC1C
                                        minClusterSize = 20)          # S1 settings
 dynamicColorsHybridC1C2 <- labels2colors(dynamicModsHybridC1C2)
 
-# Merge close modules (S1 cutHeight = 0.2). Changed: scale each condition first so that
+# Merge close modules (S1 cutHeight = 0.2).
 # tumour-vs-normal mean shifts do not drive the merging.
 colorh1C1C2 <- mergeCloseModules(rbind(scale(datC1), scale(datC2)),
                                  dynamicColorsHybridC1C2, cutHeight = .2)$colors
@@ -421,14 +421,49 @@ plotDendroAndColors(geneTreeC1C2, cbind(dynamicColorsHybridC1C2, colorh1C1C2),
                     main = "GSE10072: gene dendrogram on TOM of co-expression difference")
 dev.off()
 
-if (any(colorh1C1C2 != "grey")) {
-  hm <- plotC1C2Heatmap(colorh1C1C2, AdjMatC1, AdjMatC2, datC1, datC2,
-                        file = file.path(out_dir, "GSE10072_4_C1C2_heatmap.png"))
-} else {
-  message("No differentially co-expressed modules found: all genes grey.")
+
+
+
+### ---- 4.6 fig 2A :comparitive corr. heatmap ----
+plotFig2A <- function(colorh, AdjC1, AdjC2, datC1, datC2, mod_order, file,
+                      cond = c("Tumour", "Normal")) {
+  ord  <- unlist(lapply(mod_order, function(m) which(colorh == m)))   # genes grouped by module
+  M    <- AdjC1[ord, ord]
+  lo   <- row(M) > col(M)
+  M[lo] <- AdjC2[ord, ord][lo]                                        # lower triangle = condition 2
+  diag(M) <- 0
+  M    <- sign(M) * sqrt(abs(M))                                      # back to correlation scale (as S1)
+  n    <- length(ord)
+  r    <- rle(colorh[ord]); ends <- cumsum(r$lengths); starts <- ends - r$lengths + 1
+  mexp <- sapply(r$values, function(m) c(mean(datC1[, colorh == m]), mean(datC2[, colorh == m])))
+  pal  <- colorRampPalette(c("white", "saddlebrown"))(100)
+  shade <- function(v) pal[1 + round(99 * (v - min(mexp)) / diff(range(mexp)))]
+  
+  png(file, width = 1600, height = 1400, res = 150)
+  layout(matrix(1:2, 1), widths = c(7, 1))
+  par(mar = c(1, 1, 3, 0))
+  image(1:n, 1:n, t(M)[, n:1], col = rev(RColorBrewer::brewer.pal(11, "RdYlBu")),
+        breaks = seq(-1, 1, length.out = 12), axes = FALSE, xlab = "", ylab = "",
+        useRaster = TRUE, main = paste("Upper:", cond[1], "   Lower:", cond[2]))
+  rect(starts - 0.5, n - ends + 0.5, ends + 0.5, n - starts + 1.5, border = "black", lwd = 1.2)
+  par(mar = c(1, 0, 3, 1))
+  plot(NA, xlim = c(0, 3), ylim = c(0.5, n + 0.5), axes = FALSE, xlab = "", ylab = "",
+       xaxs = "i", yaxs = "i")
+  for (k in seq_along(r$values)) {
+    y0 <- n - ends[k] + 0.5; y1 <- n - starts[k] + 1.5
+    rect(0, y0, 1, y1, col = r$values[k],    border = NA)            # module colour bar
+    rect(1, y0, 2, y1, col = shade(mexp[1, k]), border = "grey80")   # mean expr, condition 1
+    rect(2, y0, 3, y1, col = shade(mexp[2, k]), border = "grey80")   # mean expr, condition 2
+  }
+  mtext(c("module", substr(cond, 1, 1)), side = 3, at = c(0.5, 1.5, 2.5), line = 0.3, cex = 0.7)
+  dev.off()
 }
 
-### ---- 4.6 Save modules + log ----
+plotFig2A(colorh1C1C2, AdjMatC1, AdjMatC2, datC1, datC2, mod_order = hm,
+          file = file.path(out_dir, "GSE10072_4_Fig2A.png"))
+
+
+### ---- 4.7 Save modules + log ----
 modules <- data.frame(probe  = colnames(datC1),
                       symbol = dc_input$ann[colnames(datC1), "symbol"],
                       entrez = dc_input$ann[colnames(datC1), "entrez"],
@@ -474,57 +509,52 @@ for (i in 1:N_PERM)
 d<-rbind(scale(datC1),scale(datC2))
 # ** scaling within each condition removes tumour-vs-normal mean shifts before shuffling
 
-### ---- 5.2 Observed dispersions and null distributions (S1 loop) ----
-mods  <- setdiff(unique(colorh1C1C2), "grey")            # ** non-grey modules, in S1's order
-n_mod <- length(mods)                                    # ** S1 hard-coded 8 (rat modules); use the actual count
-stopifnot(n_mod >= 1)                                    # ** stop if section 4 found no modules
+#### ---- 5.2 Observed dispersions and null distributions (S1 loop) ----
+# mods  <- setdiff(unique(colorh1C1C2), "grey")            # ** non-grey modules, in S1's order
+# n_mod <- length(mods)                                    # ** S1 hard-coded 8 (rat modules); use the actual count
+# stopifnot(n_mod >= 1)                                    # ** stop if section 4 found no modules
+# 
+# #We compute all pairwise module to module dispersion values, and generate a null distribution from permuted scaled data
+# dispersionMatrix<-matrix(nrow=n_mod,ncol=n_mod)
+# dimnames(dispersionMatrix) <- list(mods, mods)
+# nullDistrib<-list()
+# n_cells <- n_mod * (n_mod + 1) / 2                       # ** number of upper-triangle cells to compute
+# cell <- 0                                                # ** progress counter
+# t0 <- Sys.time()                                         # ** start time
+# i<-j<-0
+# 
+# for (c1 in mods) {
+#   i<-i+1
+#   j<-0
+#   nullDistrib[[c1]]<-list()
+#   for (c2 in mods) {
+#     j<-j+1
+#     if (j < i) next        # ** matrix is symmetric: skip lower triangle
+#     dispersionMatrix[i,j] <- dispersionModule2Module(c1,c2,datC1,datC2,colorh1C1C2)
+#     nullDistrib[[c1]][[c2]] <- apply(permutations,1,permutationProcedureModule2Module,d,c2,c1,colorh1C1C2)
+#     cell <- cell + 1                                     # ** one more cell done
+#     message(sprintf("[%d/%d] %s-%s done ", cell, n_cells, c1, c2) ) # ** progress line 
+#   }
+# }
+# 
+# print(t0)
+# Sys.time()    
+# 
 
-#We compute all pairwise module to module dispersion values, and generate a null distribution from permuted scaled data
-dispersionMatrix<-matrix(nrow=n_mod,ncol=n_mod)
-dimnames(dispersionMatrix) <- list(mods, mods)
-nullDistrib<-list()
-n_cells <- n_mod * (n_mod + 1) / 2                       # ** number of upper-triangle cells to compute
-cell <- 0                                                # ** progress counter
-t0 <- Sys.time()                                         # ** start time
-i<-j<-0
-
-for (c1 in mods) {
-  i<-i+1
-  j<-0
-  nullDistrib[[c1]]<-list()
-  for (c2 in mods) {
-    j<-j+1
-    if (j < i) next        # ** matrix is symmetric: skip lower triangle
-    dispersionMatrix[i,j] <- dispersionModule2Module(c1,c2,datC1,datC2,colorh1C1C2)
-    nullDistrib[[c1]][[c2]] <- apply(permutations,1,permutationProcedureModule2Module,d,c2,c1,colorh1C1C2)
-    cell <- cell + 1                                     # ** one more cell done
-    message(sprintf("[%d/%d] %s-%s done ", cell, n_cells, c1, c2) ) # ** progress line 
-  }
-}
-
-print(t0)
-Sys.time()    
-
-# save results 
-dispersionMatrix
-nullDistrib
-
-
-#### ----- new 5.2 -------
-#### ---- 5.2c Fill in the missing cells of the checkpoint ----
+### ----- 5.2 Observed dispersion and null distributions (new) -------
 perm_file <- file.path(out_dir, "GSE10072_5_permutation_raw.rds")
 chk <- readRDS(perm_file)
-stopifnot(identical(chk$mods, setdiff(unique(colorh1C1C2), "grey")))   # same modules as this session
+stopifnot(identical(chk$mods, setdiff(unique(colorh1C1C2), "grey")))    
 mods <- chk$mods; n_mod <- length(mods)
 permutations <- chk$permutations; nullDistrib <- chk$nullDistrib; N_PERM <- chk$N_PERM
 d <- rbind(scale(datC1), scale(datC2))
 
-# observed dispersions: recompute all (fast)
+# observed dispersion: 
 dispersionMatrix <- matrix(NA, n_mod, n_mod, dimnames = list(mods, mods))
 for (i in 1:n_mod) for (j in i:n_mod)
   dispersionMatrix[i, j] <- dispersionModule2Module(mods[i], mods[j], datC1, datC2, colorh1C1C2)
 
-# null distributions: only the missing ones (the 26 diagonals); ~20 min, darkgrey first
+# null distributions:  
 t0 <- Sys.time()
 for (i in 1:n_mod) for (j in i:n_mod) {
   c1 <- mods[i]; c2 <- mods[j]
@@ -536,11 +566,8 @@ for (i in 1:n_mod) for (j in i:n_mod) {
   }
 }
 
-# verify, then save straight away
+# verify  
 stopifnot(sum(lengths(nullDistrib)) == 351, sum(!is.na(dispersionMatrix)) == 351)
-saveRDS(list(dispersionMatrix = dispersionMatrix, nullDistrib = nullDistrib,
-             permutations = permutations, mods = mods,
-             N_PERM = N_PERM, seed = SPLIT_SEED), perm_file)
 
 
 #### ---- 5.2b Checkpoint: save the slow loop's results immediately ----
@@ -604,7 +631,7 @@ png(file.path(out_dir, "GSE10072_5_permutation_FigS1.png"), width = 2000, height
 plotPermMatrix(permutationSummary)
 dev.off()
 
-#We plot the result (cf supplementary figure 1)
+#We plot the result (DiffCoEx supp_S1, Permutation counts for every module pair)
 png(file.path(out_dir, "GSE10072_5_permutation_FigS1.png"), width = 700, height = 700)   # ** save to file (S1 drew to screen)
 plotMatrix(permutationSummary)
 dev.off()                                               
@@ -632,7 +659,10 @@ capture.output(                                                                 
 )
 capture.output(sessionInfo(), file = file.path(out_dir, "sessionInfo.txt"))                  # class scripts: save sessionInfo
 
-# --- Table 1, module enrichment (expected / observed / FDR (false discovery rate)) 
+
+
+
+# --- Table 1. module enrichment (expected / observed / FDR (false discovery rate)) 
 
 
 # ---- fig2b expression traces of one module’s genes in each condition
