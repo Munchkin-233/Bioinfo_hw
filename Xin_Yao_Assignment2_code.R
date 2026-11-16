@@ -14,7 +14,9 @@
 # if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 # BiocManager::install(c("impute", "preprocessCore", "GO.db"), ask = FALSE, update = FALSE)
 # install.packages("WGCNA")
- 
+# BiocManager::install("org.Hs.eg.db")  
+
+
 # Load
 library(matrixStats)    # rowVars / rowMeans for gene filtering
 library(gtsummary)      # Table 1 
@@ -22,12 +24,16 @@ library(ggrepel)        # non-overlapping plot labels
 library(RColorBrewer)   # colour palettes (used by plotC1C2Heatmap)
 library(ggplot2)
 
-
 library(Biobase) 
 library(fastcluster)    # fast hclust ( flashClust)
 library(GEOquery) 
 library(pheatmap) # sample-distance heatmap
 library(WGCNA)  
+
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+library(GO.db)
+library(knitr)
  
 dir.create("outputs", showWarnings = FALSE)
 out_dir <- "outputs"
@@ -44,6 +50,9 @@ out_dir <- "outputs"
 ## ==========1.input data, examine ============
 gse  <- getGEO("GSE10072", destdir = ".")   # downloads and caches GDS2901.soft.gz - choice of data 
 names(gse)           # e.g. "GSE10072_series_matrix.txt.gz"
+
+gse <- getGEO(filename = "GSE10072_series_matrix.txt.gz", destdir = ".", getGPL = TRUE)
+gse <- list(gse) 
 
 eset <- gse[[1]]     # pull out the ExpressionSet
 # eset                 # assayData: 22283 features, 107 samples 
@@ -153,7 +162,7 @@ saveRDS(list(patients = tbl_patients, samples = tbl_samples), "outputs/GSE10072_
 saveRDS(ch_table, "outputs/GSE10072_ch_table.rds")
 write.csv(ch_table, "outputs/GSE10072_sample_metadata.csv", row.names = TRUE)
 
-
+# ch_table <- readRDS("outputs/GSE10072_ch_table.rds")
  
 ## ========= 3. Expression matrices for DiffCoEx ===============
 
@@ -167,7 +176,7 @@ identical(colnames(x), rownames(ch_table))
 
 ### ---- 3.2 Drop Affymetrix control probes ----
 x <- x[!grepl("^AFFX", rownames(x)), ]
-
+dim(x)
 
 ### ---- 3.3 Label-free gene filter: expressed (mean > cut-off), then most variable, across ALL arrays ----
 
@@ -257,6 +266,8 @@ dc_input <- list(
 ### ---- 3.6 Save + log ----
 saveRDS(dc_input, "outputs/GSE10072_diffcoex_input.rds")
 
+dc_input <- readRDS("outputs/GSE10072_diffcoex_input.rds")  
+
 capture.output(
   cat("Probes after AFFX removal:", nrow(x), "\nGenes kept:", nrow(x_f), "\n\n"),
   
@@ -308,7 +319,7 @@ legend("topright", names(cols), fill = cols, bty = "n", cex = 0.8)
 dev.off()
 
 #### 3.7.2 Sample distances ----
-# 01: "05_sample_distances.pdf". Expression is already log2 RMA, so no VST step.
+# 01: "05_sample_distances.pdf". Expression is already log2 RMA.
 ann_colors <- list(tissue  = cols,
                    smoking = c(never = "grey85", former = "grey55", current = "grey20"))
 pheatmap(sample_dist, annotation_col = annotation, annotation_row = annotation,
@@ -342,7 +353,7 @@ p <- ggplot(pca_df, aes(PC1, PC2, fill = tissue, shape = stage_grp)) +
 
 ggsave(file.path(out_dir, "GSE10072_3.7.3_PCA.png"), p, width = 8.5, height = 5.5)
 write.csv(pca_df, file.path(out_dir, "GSE10072_PCA_scores.csv"), row.names = FALSE)
-# PCA clustering is descriptive. Do not remove a sample solely because it differs.   # 01
+# PCA clustering is descriptive. 
 
 #### 3.7.4 Network QC: good samples/genes and sample clustering, per condition ----
 # 03: goodSamplesGenes + "03_sample_clustering.pdf". DiffCoEx builds correlations within each
@@ -661,16 +672,22 @@ plotPermMatrix <- function(mat, n_perm = N_PERM) {
          legend = c("0", "1–50", "51–100", ">100"))
 }
 
+
+# add ordering - mods <- hm_order
+ps <- permutationSummary
+ps[lower.tri(ps)] <- t(ps)[lower.tri(ps)]    # copy upper triangle to lower so no value is lost
+permutationSummary_reorder <- ps[hm_order, hm_order]   # reorder rows AND columns
+
 #### 5.4.1. Plot matrix ------
 # (DiffCoEx supp_S1, Permutation counts for every module pair)
-png(file.path(out_dir, "GSE10072_5_permutation_FigS1.png"), width = 2000, height = 2000, res = 200)
-plotPermMatrix(permutationSummary)
+png(file.path(out_dir, "GSE10072_5_permutation_FigS4.png"), width = 2000, height = 2000, res = 200)
+plotPermMatrix(permutationSummary_reorder)
 dev.off()
 
 
                                   
 
-# ---- 5.5 Tables: empirical p-values with BH adjustment ----
+## ---- 5.5 Tables: empirical p-values with BH adjustment ----
 perm_tab <- data.frame(module1 = rownames(permutationSummary)[row(permutationSummary)],     # ** long format: one row per module pair
                        module2 = colnames(permutationSummary)[col(permutationSummary)],
                        dispersion = as.vector(dispersionMatrix),                             # ** observed dispersion
@@ -695,12 +712,104 @@ capture.output(sessionInfo(), file = file.path(out_dir, "sessionInfo.txt"))     
 
 
 
+# 6. GO enrichment of DiffCoEx modules (hypergeometric ORA, as in class script 02) ---- 
+### 6.1 Module genes, converted to Ensembl IDs to match the class GO file ----
+mods_df <- read.csv(file.path(out_dir, "GSE10072_4_module_assignment.csv"), stringsAsFactors = FALSE)
+mods_df$entrez <- sub(" ///.*", "", as.character(mods_df$entrez))   # keep first ID if several
+mods_df <- mods_df[!is.na(mods_df$entrez) & mods_df$entrez != "", ]
 
-# --- Table 1. module enrichment (expected / observed / FDR (false discovery rate)) 
+#use org.Hs.eg.db to convert Entrez IDs from GPL96 to Ensembl IDs
+mods_df$ensembl <- unname(mapIds(org.Hs.eg.db, keys = mods_df$entrez, column = "ENSEMBL",
+                                 keytype = "ENTREZID", multiVals = "first"))  # first Ensembl ID if several
+mods_df <- mods_df[!is.na(mods_df$ensembl), ]                       # drop genes with no Ensembl match
+
+### 6.2 GO BP sets and ORA, similar to class script 02 ----
+go <- readRDS("GO_BP_ensembl.rds") ;names(go)
+    # class file: $pathways (GO ID -> Ensembl genes), $terms (GOID, TERM)
+
+# Universe = genes that went into DiffCoEx (all 8,000 filtered probes, grey included), not every human gene
+universe <- unique(mods_df$ensembl)
+N <- length(universe) # 5806
+
+ora_sets <- lapply(go$pathways, intersect, y = universe)                  # restrict GO sets to the universe
+ora_sets <- ora_sets[lengths(ora_sets) >= 15L & lengths(ora_sets) <= 500L] # size filter BEFORE testing
+set_size <- lengths(ora_sets)                                             # the "m" in phyper()
+
+mod_n     <- tapply(mods_df$ensembl, mods_df$module, function(x) length(unique(x)))  # genes per module
+#mod_names <- setdiff(names(sort(mod_n, decreasing = TRUE)), "grey")      # largest module first; grey = unassigned 
+hm_order  <- readRDS(file.path(out_dir, "GSE10072_4_diffcoex_modules.rds"))$heatmap_order
+mod_names <- intersect(hm_order, names(mod_n))       # same order as Figure 1 (top to bottom)
+
+# One module = one "hit list"  
+ora_one <- function(m) {
+  hits    <- unique(mods_df$ensembl[mods_df$module == m])
+  overlap <- lengths(lapply(ora_sets, intersect, y = hits))               # module genes in each GO set
+  ora_p   <- phyper(overlap - 1, m = set_size, n = N - set_size,
+                    k = length(hits), lower.tail = FALSE)                 # P(overlap >= observed)
+  data.frame(module = m, GOID = names(ora_sets),
+             term = go$terms$TERM[match(names(ora_sets), go$terms$GOID)], # GO ID -> readable name, as in 02
+             set_size = set_size, expected = set_size * length(hits) / N, observed = overlap,
+             p = ora_p, fdr = p.adjust(ora_p, method = "BH"), row.names = NULL)
+}
+ora_all <- do.call(rbind, lapply(mod_names, ora_one))
+write.csv(ora_all[order(ora_all$module, ora_all$p), ],
+          file.path(out_dir, "GSE10072_6_GO_ORA_all.csv"), row.names = FALSE)   # full results
 
 
-# ---- fig2b expression traces of one module’s genes in each condition
-# Fig 2A, complete (heatmap + boxes + colour bar + expression bands)
+### 6.3 Table: top 1(3) terms per module with FDR < 0.05 and at least (3) genes observed
+top_n <- 1
+fmt_fdr <- function(x) ifelse(x < 0.001, "<0.001", sprintf("%.3f", x))
+tab2 <- do.call(rbind, lapply(mod_names, function(m) {
+  d <- ora_all[ora_all$module == m & ora_all$fdr < 0.05 & ora_all$observed >= 3, ]
+  d <- head(d[order(d$p), ], top_n)
+  lab <- sprintf("%s (n = %d)", m, mod_n[[m]])
+  if (nrow(d) == 0)
+    return(data.frame(Module = lab, `GO biological process` = "No significant enrichment",
+                      Expected = "", Observed = "", FDR = "", check.names = FALSE))
+  data.frame(Module = c(lab, rep("", nrow(d) - 1)),
+             `GO biological process` = d$term,
+             Expected = sprintf("%.2f", d$expected),
+             Observed = d$observed,
+             FDR = fmt_fdr(d$fdr), check.names = FALSE)
+}))
+
+t2_caption <- "Table 2. Functional enrichment of DiffCoEx modules (expected, observed, FDR, false discovery rate)"
+t2_foot <- c("", paste0("Hypergeometric over-representation test of GO biological-process terms (15–500 genes; ",
+                        "course file GO_BP_ensembl.rds) against the ", N, " unique Ensembl genes among the 8,000 analysed probes; ",
+                        "n = module genes with an Ensembl ID. FDR by Benjamini–Hochberg within each module. ",
+                        "Top ", top_n, " terms per module shown; full results in GSE10072_6_GO_ORA_all.csv."))
+
+kt2 <- kable(tab2, format = "pipe", align = c("l", "l", "r", "r", "r"), caption = t2_caption, row.names = FALSE)
+kt2
+writeLines(c(kt2, t2_foot), file.path(out_dir, "GSE10072_table2_GO_enrichment.md"))
+
+
+# ---- 7.Table 3. Module size, within-module dispersion and permutation p ----
+perm <- read.csv(file.path(out_dir, "GSE10072_5_permutation_results.csv"), stringsAsFactors = FALSE)
+modp <- read.csv(file.path(out_dir, "GSE10072_4_module_assignment.csv"), stringsAsFactors = FALSE)
+hm_order <- readRDS(file.path(out_dir, "GSE10072_4_diffcoex_modules.rds"))$heatmap_order
+
+within <- perm[perm$type == "within", ]
+within <- within[match(hm_order, within$module1), ]             # same order as Figure 1
+size   <- table(modp$module)[within$module1]                    # probes per module
+
+fmt_p <- function(x) ifelse(x < 0.001, "<0.001", sprintf("%.3f", x))
+tab3 <- data.frame(Module          = within$module1,
+                   `Size (probes)` = as.integer(size),
+                   Dispersion      = sprintf("%.3f", within$dispersion),
+                   `Perm. ≥ obs.`  = within$n_perm_ge,
+                   `p (perm.)`     = fmt_p(within$p_perm),
+                   `p (BH)`        = sprintf("%.4f", within$padj),
+                   check.names = FALSE)
+
+t3_caption <- "Table 3. DiffCoEx modules: size, within-module dispersion and permutation p-value"
+t3_foot <- c("", paste0("Dispersion: DiffCoEx measure of within-module change in correlation between tumor (n = 42) and normal (n = 32). ",
+                        "p (perm.) = (number of 1,000 label permutations with dispersion ≥ observed + 1) / 1,001. ",
+                        "p (BH): Benjamini–Hochberg adjustment across all 351 within- and between-module tests. ",
+                        "Modules listed in Figure 1 order."))
+kt3 <- kable(tab3, format = "pipe", align = c("l", rep("r", 5)), caption = t3_caption, row.names = FALSE)
+kt3
+writeLines(c(kt3, t3_foot), file.path(out_dir, "GSE10072_table3_modules.md"))
 
 
 
